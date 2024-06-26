@@ -176,7 +176,8 @@ function placeWords(grid) {
         }
 
         if (!placed) {
-            console.log(`Couldn't place word: ${word}`);        }
+            console.log(`Couldn't place word: ${word}`);
+        }
     }
 
     return usedWords;
@@ -194,7 +195,8 @@ function canPlaceWord(grid, word, row, col, direction) {
         if (grid[y][x] !== '.' && grid[y][x] !== word[i]) {
             return false;
         }
-    
+    }
+
     return true;
 }
 
@@ -348,8 +350,26 @@ function downloadPuzzle() {
     
     const doc = new jsPDF({
         unit: 'px',
-        format: [pageWidth, pageHeight]
+        format: [pageWidth, pageHeight],
+        compress: true
     });
+
+    // 한글 폰트 추가
+    doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
+    doc.addFont('NanumGothic-Bold.ttf', 'NanumGothic', 'bold');
+    doc.addFont('NanumGothic-ExtraBold.ttf', 'NanumGothic', 'extrabold');
+    doc.addFont('NanumGothic-Light.ttf', 'NanumGothic', 'light');
+
+    doc.setFont('NanumGothic', 'normal');
+
+    // UTF-8 인코딩을 사용하여 텍스트를 렌더링하는 함수
+    function drawText(text, x, y, options = {}) {
+        const defaultOptions = { align: 'left', baseline: 'top' };
+        const mergedOptions = { ...defaultOptions, ...options };
+        
+        const utf8Text = unescape(encodeURIComponent(text));
+        doc.text(utf8Text, x, y, mergedOptions);
+    }
 
     // 퍼즐 그리기
     for (let i = 0; i < gridSize; i++) {
@@ -376,117 +396,109 @@ function downloadPuzzle() {
             doc.rect(x, y, cellSize, cellSize, 'S');
         }
     }
-// 단서 추가
-doc.addPage();
-doc.setFontSize(12);
-let yOffset = 20;
 
-doc.text("Across:", 10, yOffset);
-yOffset += 15;
-puzzle.filter(word => word.direction[1] === 1).forEach((word, index) => {
-    const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
-    doc.text(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
+    // 단서 추가
+    doc.addPage();
+    doc.setFontSize(12);
+    let yOffset = 20;
+
+    drawText("Across:", 10, yOffset);
     yOffset += 15;
-    if (yOffset > pageHeight - 20) {
-        doc.addPage();
-        yOffset = 20;
-    }
-});
+    puzzle.filter(word => word.direction[1] === 1).forEach((word, index) => {
+        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
+        drawText(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
+        yOffset += 15;
+        if (yOffset > pageHeight - 20) {
+            doc.addPage();
+            yOffset = 20;
+        }
+    });
 
-yOffset += 10;
-doc.text("Down:", 10, yOffset);
-yOffset += 15;
-puzzle.filter(word => word.direction[0] === 1).forEach((word, index) => {
-    const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
-    doc.text(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
+    yOffset += 10;
+    drawText("Down:", 10, yOffset);
     yOffset += 15;
-    if (yOffset > pageHeight - 20) {
-        doc.addPage();
-        yOffset = 20;
-    }
-});
+    puzzle.filter(word => word.direction[0] === 1).forEach((word, index) => {
+        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
+        drawText(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
+        yOffset += 15;
+        if (yOffset > pageHeight - 20) {
+            doc.addPage();
+            yOffset = 20;
+        }
+    });
 
-doc.save('crossword_puzzle.pdf');
+    doc.save('crossword_puzzle.pdf');
 }
 
 function downloadAnswer() {
-const { jsPDF } = window.jspdf;
-const cellSize = 20; // 셀 크기 (픽셀)
-const margin = 10; // 여백 (픽셀)
+    const { jsPDF } = window.jspdf;
+    const cellSize = 20; // 셀 크기 (픽셀)
+    const margin = 10; // 여백 (픽셀)
+    
+    const gridSize = puzzle[0].direction[1]; // 그리드 크기
+    const pageWidth = cellSize * gridSize + 2 * margin;
+    const pageHeight = cellSize * gridSize + 2 * margin;
+    
+    const doc = new jsPDF({
+        unit: 'px',
+        format: [pageWidth, pageHeight],
+        compress: true
+    });
 
-const gridSize = puzzle[0].direction[1]; // 그리드 크기
-const pageWidth = cellSize * gridSize + 2 * margin;
-const pageHeight = cellSize * gridSize + 2 * margin;
+    // 한글 폰트 추가
+    doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
+    doc.addFont('NanumGothic-Bold.ttf', 'NanumGothic', 'bold');
+    doc.addFont('NanumGothic-ExtraBold.ttf', 'NanumGothic', 'extrabold');
+    doc.addFont('NanumGothic-Light.ttf', 'NanumGothic', 'light');
 
-const doc = new jsPDF({
-    unit: 'px',
-    format: [pageWidth, pageHeight]
-});
+    doc.setFont('NanumGothic', 'normal');
 
-// 한글 폰트 추가 (NanumGothic 폰트를 사용한다고 가정)
-doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
-doc.setFont('NanumGothic');
-
-// 퍼즐 그리기
-for (let i = 0; i < gridSize; i++) {
-    for (let j = 0; j < gridSize; j++) {
-        const x = margin + j * cellSize;
-        const y = margin + i * cellSize;
+    // UTF-8 인코딩을 사용하여 텍스트를 렌더링하는 함수
+    function drawText(text, x, y, options = {}) {
+        const defaultOptions = { align: 'left', baseline: 'top' };
+        const mergedOptions = { ...defaultOptions, ...options };
         
-        // 셀 그리기
-        if (puzzle.some(word => {
-            const [dy, dx] = word.direction;
-            return (word.row <= i && i < word.row + word.word.length * dy) &&
-                   (word.col <= j && j < word.col + word.word.length * dx);
-        })) {
-            // 단어가 들어갈 셀
-            doc.setFillColor(255, 255, 255); // 흰색
-        } else {
-            // 빈 셀
-            doc.setFillColor(200, 200, 200); // 진한 회색
-        }
-        doc.rect(x, y, cellSize, cellSize, 'F');
-        
-        // 테두리 그리기
-        doc.setDrawColor(0);
-        doc.rect(x, y, cellSize, cellSize, 'S');
-        
-        // 답 채우기
-        const word = puzzle.find(w => {
-            const [dy, dx] = w.direction;
-            return (w.row <= i && i < w.row + w.word.length * dy) &&
-                   (w.col <= j && j < w.col + w.word.length * dx);
-        });
-        if (word) {
-            const index = word.direction[0] === 0 ? j - word.col : i - word.row;
-            doc.setFontSize(12);
-            doc.text(word.word[index], x + cellSize / 2, y + cellSize / 2, { align: 'center', baseline: 'middle' });
+        const utf8Text = unescape(encodeURIComponent(text));
+        doc.text(utf8Text, x, y, mergedOptions);
+    }
+
+    // 퍼즐 그리기
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            const x = margin + j * cellSize;
+            const y = margin + i * cellSize;
+            
+            // 셀 그리기
+            if (puzzle.some(word => {
+                const [dy, dx] = word.direction;
+                return (word.row <= i && i < word.row + word.word.length * dy) &&
+                       (word.col <= j && j < word.col + word.word.length * dx);
+            })) {
+                // 단어가 들어갈 셀
+                doc.setFillColor(255, 255, 255); // 흰색
+            } else {
+                // 빈 셀
+                doc.setFillColor(200, 200, 200); // 진한 회색
+            }
+            doc.rect(x, y, cellSize, cellSize, 'F');
+            
+            // 테두리 그리기
+            doc.setDrawColor(0);
+            doc.rect(x, y, cellSize, cellSize, 'S');
+            
+            // 답 채우기
+            const word = puzzle.find(w => {
+                const [dy, dx] = w.direction;
+                return (w.row <= i && i < w.row + w.word.length * dy) &&
+                       (w.col <= j && j < w.col + w.word.length * dx);
+            });
+            if (word) {
+                const index = word.direction[0] === 0 ? j - word.col : i - word.row;
+                doc.setFontSize(12);
+                drawText(word.word[index], x + cellSize / 2, y + cellSize / 2, { align: 'center', baseline: 'middle' });
+            }
         }
     }
-}
 
-doc.save('crossword_puzzle_answer.pdf');
+    doc.save('crossword_puzzle_answer.pdf');
 }
-
-// 배경 이미지를 추가하는 함수
-function addBackgroundImage() {
-const body = document.body;
-const backgroundDiv = document.createElement('div');
-backgroundDiv.style.position = 'fixed';
-backgroundDiv.style.right = '10px';
-backgroundDiv.style.bottom = '10px';
-backgroundDiv.style.width = '150px';
-backgroundDiv.style.height = '150px';
-backgroundDiv.style.backgroundImage = 'url("https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbYbt9e%2FbtsH8GZR9N5%2FS2OKCshqvmQuhy6AV7WZv1%2Fimg.jpg")';
-backgroundDiv.style.backgroundSize = 'cover';
-backgroundDiv.style.backgroundPosition = 'center';
-backgroundDiv.style.borderRadius = '50%';
-backgroundDiv.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
-backgroundDiv.style.zIndex = '-1';
-body.appendChild(backgroundDiv);
-}
-
-// 페이지 로드 시 배경 이미지 추가
-document.addEventListener('DOMContentLoaded', function() {
-addBackgroundImage();
-})
