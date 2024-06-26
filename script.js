@@ -1,17 +1,19 @@
 let words = [];
 let clues = [];
+let selectedWords = [];
+let selectedClues = [];
 let puzzle = [];
 let timer;
-let score = 0;
+let score = 1000;
 let hintsUsed = 0;
 let startTime;
 
 document.getElementById('csvFile').addEventListener('change', handleFileSelect);
 document.getElementById('generateBtn').addEventListener('click', generatePuzzle);
-document.getElementById('downloadPdfBtn').addEventListener('click', downloadPDF);
-document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
 document.getElementById('checkBtn').addEventListener('click', checkAnswers);
 document.getElementById('hintBtn').addEventListener('click', getHint);
+document.getElementById('downloadPuzzleBtn').addEventListener('click', downloadPuzzle);
+document.getElementById('downloadAnswerBtn').addEventListener('click', downloadAnswer);
 
 function handleFileSelect(event) {
     const file = event.target.files[0];
@@ -44,17 +46,48 @@ function handleFileSelect(event) {
 function processData(data) {
     words = [];
     clues = [];
-    for (let i = 1; i < data.length; i++) {
+    for (let i = 0; i < data.length; i++) {
         if (data[i][0] && data[i][1]) {
             words.push(data[i][0].toUpperCase());
             clues.push(data[i][1]);
         }
     }
+    displayWordSelection();
+}
+
+function displayWordSelection() {
+    const wordList = document.getElementById('wordList');
+    wordList.innerHTML = '';
+    words.forEach((word, index) => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `word-${index}`;
+        checkbox.value = index;
+
+        const label = document.createElement('label');
+        label.htmlFor = `word-${index}`;
+        label.textContent = `${word} - ${clues[index]}`;
+
+        const div = document.createElement('div');
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        wordList.appendChild(div);
+    });
+    document.getElementById('wordSelectionContainer').style.display = 'block';
 }
 
 function generatePuzzle() {
-    if (words.length === 0) {
-        alert('Please upload a file first');
+    selectedWords = [];
+    selectedClues = [];
+    const checkboxes = document.querySelectorAll('#wordList input[type="checkbox"]:checked');
+    checkboxes.forEach(checkbox => {
+        const index = parseInt(checkbox.value);
+        selectedWords.push(words[index]);
+        selectedClues.push(clues[index]);
+    });
+
+    if (selectedWords.length === 0) {
+        alert('Please select at least one word');
         return;
     }
 
@@ -65,9 +98,9 @@ function generatePuzzle() {
 
     displayPuzzle(grid, puzzle);
     document.getElementById('checkBtn').style.display = 'block';
-    document.getElementById('downloadPdfBtn').style.display = 'block';
-    document.getElementById('downloadExcelBtn').style.display = 'block';
     document.getElementById('hintBtn').style.display = 'block';
+    document.getElementById('downloadPuzzleBtn').style.display = 'block';
+    document.getElementById('downloadAnswerBtn').style.display = 'block';
 
     startTimer();
     score = 1000;
@@ -92,8 +125,8 @@ function placeWords(grid) {
     const usedWords = [];
     const directions = [[0, 1], [1, 0]]; // Across and Down
 
-    for (let i = 0; i < words.length; i++) {
-        const word = words[i];
+    for (let i = 0; i < selectedWords.length; i++) {
+        const word = selectedWords[i];
         let placed = false;
 
         for (let attempt = 0; attempt < 100; attempt++) {
@@ -182,7 +215,7 @@ function displayClues(usedWords) {
 
     usedWords.forEach((wordObj, index) => {
         const clue = document.createElement('p');
-        clue.textContent = `${index + 1}. ${clues[words.indexOf(wordObj.word)]}`;
+        clue.textContent = `${index + 1}. ${selectedClues[selectedWords.indexOf(wordObj.word)]}`;
         if (wordObj.direction[1] === 1) {
             acrossClues.appendChild(clue);
         } else {
@@ -273,7 +306,7 @@ function getHint() {
     }
 }
 
-function downloadPDF() {
+function downloadPuzzle() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const puzzleContainer = document.getElementById('puzzleContainer');
@@ -306,9 +339,32 @@ function downloadPDF() {
     });
 }
 
-function downloadExcel() {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([['Word', 'Clue'], ...words.map((word, index) => [word, clues[index]])]);
-    XLSX.utils.book_append_sheet(wb, ws, 'Crossword');
-    XLSX.writeFile(wb, 'crossword_puzzle.xlsx');
+function downloadAnswer() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const puzzleContainer = document.getElementById('puzzleContainer');
+    
+    doc.text('Crossword Puzzle Answer', 105, 15, null, null, 'center');
+    
+    // Create a copy of the puzzle with answers filled in
+    const answerPuzzle = puzzleContainer.cloneNode(true);
+    const inputs = answerPuzzle.querySelectorAll('input');
+    puzzle.forEach(wordObj => {
+        const [dy, dx] = wordObj.direction;
+        for (let i = 0; i < wordObj.word.length; i++) {
+            const y = wordObj.row + i * dy;
+            const x = wordObj.col + i * dx;
+            inputs[y * puzzle[0].direction[1] + x].value = wordObj.word[i];
+        }
+    });
+    
+    html2canvas(answerPuzzle).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = doc.getImageProperties(imgData);
+        const pdfWidth = doc.internal.pageSize.getWidth() - 20;
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        doc.addImage(imgData, 'PNG', 10, 20, pdfWidth, pdfHeight);
+        
+        doc.save('crossword_puzzle_answer.pdf');
+    });
 }
