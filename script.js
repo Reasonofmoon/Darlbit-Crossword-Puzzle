@@ -160,7 +160,7 @@ function downloadPuzzle() {
                 doc.setFillColor(255, 255, 255); // 흰색
             } else {
                 // 빈 셀
-                doc.setFillColor(200, 200, 200); // 진한 회색
+                doc.setFillColor(0, 0, 0); // 검은색
             }
             doc.rect(x, y, cellSize, cellSize, 'F');
             
@@ -247,7 +247,7 @@ function downloadAnswer() {
                 doc.setFillColor(255, 255, 255); // 흰색
             } else {
                 // 빈 셀
-                doc.setFillColor(200, 200, 200); // 진한 회색
+                doc.setFillColor(0, 0, 0); // 검은색
             }
             doc.rect(x, y, cellSize, cellSize, 'F');
             
@@ -265,6 +265,7 @@ function downloadAnswer() {
                 const [dy, dx] = word.direction;
                 const index = dy === 0 ? j - word.col : i - word.row;
                 doc.setFontSize(cellSize * 0.6);
+                doc.setTextColor(0); // 검은색 텍스트
                 drawText(word.word[index], x + cellSize / 2, y + cellSize / 2, { align: 'center', baseline: 'middle' });
             }
         }
@@ -273,6 +274,7 @@ function downloadAnswer() {
     // 단어 목록 추가
     let yOffset = margin + gridSize * cellSize + 10;
     doc.setFontSize(10);
+    doc.setTextColor(0); // 검은색 텍스트
     drawText("Words in the Puzzle:", margin, yOffset);
     yOffset += 5;
 
