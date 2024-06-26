@@ -65,7 +65,6 @@ function handleFileSelect(event) {
         reader.readAsBinaryString(file);
     }
 }
-
 function processData(data) {
     words = [];
     clues = [];
@@ -97,16 +96,7 @@ function displayWordSelection() {
         wordList.appendChild(div);
     });
     document.getElementById('wordSelectionContainer').style.display = 'block';
-}
-
-function selectAllWords() {
-    const checkboxes = document.querySelectorAll('#wordList input[type="checkbox"]');
-    checkboxes.forEach(checkbox => checkbox.checked = true);
-}
-
-function deselectAllWords() {
-    const checkboxes = document.querySelectorAll('#wordList input[type="checkbox"]');
-    checkboxes.forEach(checkbox => checkbox.checked = false);
+    document.getElementById('generateBtn').style.display = 'block';
 }
 
 function generatePuzzle() {
@@ -128,6 +118,11 @@ function generatePuzzle() {
     const gridSize = getGridSize(difficulty);
     const grid = createGrid(gridSize, gridSize);
     puzzle = placeWords(grid);
+
+    if (puzzle.length === 0) {
+        alert('Failed to generate puzzle. Please try again or select different words.');
+        return;
+    }
 
     displayPuzzle(grid, puzzle);
     document.getElementById('checkBtn').style.display = 'block';
