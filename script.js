@@ -10,16 +10,19 @@ let startTime;
 
 document.addEventListener('DOMContentLoaded', function() {
     addBackgroundImage();
+    setupEventListeners();
 });
 
-document.getElementById('csvFile').addEventListener('change', handleFileSelect);
-document.getElementById('generateBtn').addEventListener('click', generatePuzzle);
-document.getElementById('checkBtn').addEventListener('click', checkAnswers);
-document.getElementById('hintBtn').addEventListener('click', getHint);
-document.getElementById('downloadPuzzleBtn').addEventListener('click', downloadPuzzle);
-document.getElementById('downloadAnswerBtn').addEventListener('click', downloadAnswer);
-document.getElementById('selectAllBtn').addEventListener('click', selectAllWords);
-document.getElementById('deselectAllBtn').addEventListener('click', deselectAllWords);
+function setupEventListeners() {
+    document.getElementById('csvFile').addEventListener('change', handleFileSelect);
+    document.getElementById('generateBtn').addEventListener('click', generatePuzzle);
+    document.getElementById('checkBtn').addEventListener('click', checkAnswers);
+    document.getElementById('hintBtn').addEventListener('click', getHint);
+    document.getElementById('downloadPuzzleBtn').addEventListener('click', downloadPuzzle);
+    document.getElementById('downloadAnswerBtn').addEventListener('click', downloadAnswer);
+    document.getElementById('selectAllBtn').addEventListener('click', selectAllWords);
+    document.getElementById('deselectAllBtn').addEventListener('click', deselectAllWords);
+}
 
 function addBackgroundImage() {
     const body = document.body;
@@ -65,6 +68,7 @@ function handleFileSelect(event) {
         reader.readAsBinaryString(file);
     }
 }
+
 function processData(data) {
     words = [];
     clues = [];
@@ -97,6 +101,16 @@ function displayWordSelection() {
     });
     document.getElementById('wordSelectionContainer').style.display = 'block';
     document.getElementById('generateBtn').style.display = 'block';
+}
+
+function selectAllWords() {
+    const checkboxes = document.querySelectorAll('#wordList input[type="checkbox"]');
+    checkboxes.forEach(checkbox => checkbox.checked = true);
+}
+
+function deselectAllWords() {
+    const checkboxes = document.querySelectorAll('#wordList input[type="checkbox"]');
+    checkboxes.forEach(checkbox => checkbox.checked = false);
 }
 
 function generatePuzzle() {
@@ -151,7 +165,10 @@ function createGrid(rows, cols) {
 
 function placeWords(grid) {
     const usedWords = [];
-    const directions = [[0, 1], [1, 0]]; // Across and Down
+    const directions = [[0, 1], [1, 0], [1, 1], [-1, 1]]; // Across, Down, Diagonal (down-right), Diagonal (up-right)
+
+    // Sort words by length (longest first)
+    selectedWords.sort((a, b) => b.length - a.length);
 
     for (let i = 0; i < selectedWords.length; i++) {
         const word = selectedWords[i];
@@ -180,7 +197,8 @@ function placeWords(grid) {
 
 function canPlaceWord(grid, word, row, col, direction) {
     const [dy, dx] = direction;
-    if (row + word.length * dy > grid.length || col + word.length * dx > grid[0].length) {
+    if (row + word.length * dy > grid.length || col + word.length * dx > grid[0].length || 
+        row + word.length * dy < 0 || col + word.length * dx < 0) {
         return false;
     }
 
@@ -207,17 +225,22 @@ function displayPuzzle(grid, usedWords) {
     puzzleContainer.innerHTML = '';
 
     const table = document.createElement('table');
+    table.setAttribute('role', 'grid');
+    table.setAttribute('aria-label', 'Crossword puzzle');
+
     for (let i = 0; i < grid.length; i++) {
         const row = document.createElement('tr');
         for (let j = 0; j < grid[i].length; j++) {
             const cell = document.createElement('td');
             if (grid[i][j] === '.') {
                 cell.classList.add('black-cell');
+                cell.setAttribute('aria-label', 'Black cell');
             } else {
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.maxLength = 1;
                 input.classList.add('puzzle-input');
+                input.setAttribute('aria-label', `Row ${i + 1}, Column ${j + 1}`);
                 cell.appendChild(input);
             }
             row.appendChild(cell);
@@ -244,10 +267,17 @@ function displayClues(usedWords) {
     usedWords.forEach((wordObj, index) => {
         const clue = document.createElement('p');
         clue.textContent = `${index + 1}. ${selectedClues[selectedWords.indexOf(wordObj.word)]}`;
-        if (wordObj.direction[1] === 1) {
+        if (wordObj.direction[1] === 1 && wordObj.direction[0] === 0) {
             acrossClues.appendChild(clue);
-        } else {
+        } else if (wordObj.direction[0] === 1 && wordObj.direction[1] === 0) {
             downClues.appendChild(clue);
+        } else {
+            // Handle diagonal clues
+            const diagonalClues = document.createElement('div');
+            diagonalClues.classList.add('clue-list');
+            diagonalClues.innerHTML = '<h3>Diagonal</h3>';
+            diagonalClues.appendChild(clue);
+            cluesContainer.appendChild(diagonalClues);
         }
     });
 
@@ -276,7 +306,7 @@ function updateScore() {
 function checkAnswers() {
     let correctCount = 0;
     const inputs = document.querySelectorAll('.puzzle-input');
-    puzzle.forEach((wordObj, index) => {
+    puzzle.forEach((wordObj) => {
         const word = wordObj.word;
         const [dy, dx] = wordObj.direction;
         for (let i = 0; i < word.length; i++) {
@@ -319,11 +349,16 @@ function getHint() {
     const word = puzzle.find(w => 
         (w.row === row && w.col === col) || 
         (w.row === row && w.col <= col && col < w.col + w.word.length) ||
-        (w.col === col && w.row <= row && row < w.row + w.word.length)
+        (w.col === col && w.row <= row && row < w.row + w.word.length) ||
+        (Math.abs(w.row - row) === Math.abs(w.col - col) && 
+         Math.abs(w.row - row) < w.word.length && 
+         Math.abs(w.col - col) < w.word.length)
     );
 
     if (word) {
-        const index = word.direction[0] === 0 ? col - word.col : row - word.row;
+        const index = word.direction[0] === 0 ? col - word.col : 
+                      word.direction[1] === 0 ? row - word.row :
+                      Math.abs(row - word.row);
         randomInput.value = word.word[index];
         randomInput.classList.add('hint');
         randomInput.classList.add('pulse');
@@ -351,10 +386,6 @@ function downloadPuzzle() {
 
     // 한글 폰트 추가
     doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
-    doc.addFont('NanumGothic-Bold.ttf', 'NanumGothic', 'bold');
-    doc.addFont('NanumGothic-ExtraBold.ttf', 'NanumGothic', 'extrabold');
-    doc.addFont('NanumGothic-Light.ttf', 'NanumGothic', 'light');
-
     doc.setFont('NanumGothic', 'normal');
 
     // UTF-8 인코딩을 사용하여 텍스트를 렌더링하는 함수
@@ -399,7 +430,7 @@ function downloadPuzzle() {
 
     drawText("Across:", 10, yOffset);
     yOffset += 15;
-    puzzle.filter(word => word.direction[1] === 1).forEach((word, index) => {
+    puzzle.filter(word => word.direction[1] === 1 && word.direction[0] === 0).forEach((word, index) => {
         const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
         drawText(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
         yOffset += 15;
@@ -412,7 +443,20 @@ function downloadPuzzle() {
     yOffset += 10;
     drawText("Down:", 10, yOffset);
     yOffset += 15;
-    puzzle.filter(word => word.direction[0] === 1).forEach((word, index) => {
+    puzzle.filter(word => word.direction[0] === 1 && word.direction[1] === 0).forEach((word, index) => {
+        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
+        drawText(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
+        yOffset += 15;
+        if (yOffset > pageHeight - 20) {
+            doc.addPage();
+            yOffset = 20;
+        }
+    });
+
+    yOffset += 10;
+    drawText("Diagonal:", 10, yOffset);
+    yOffset += 15;
+    puzzle.filter(word => word.direction[0] !== 0 && word.direction[1] !== 0).forEach((word, index) => {
         const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
         drawText(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
         yOffset += 15;
@@ -442,10 +486,6 @@ function downloadAnswer() {
 
     // 한글 폰트 추가
     doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
-    doc.addFont('NanumGothic-Bold.ttf', 'NanumGothic', 'bold');
-    doc.addFont('NanumGothic-ExtraBold.ttf', 'NanumGothic', 'extrabold');
-    doc.addFont('NanumGothic-Light.ttf', 'NanumGothic', 'light');
-
     doc.setFont('NanumGothic', 'normal');
 
     // UTF-8 인코딩을 사용하여 텍스트를 렌더링하는 함수
@@ -488,12 +528,114 @@ function downloadAnswer() {
                        (w.col <= j && j < w.col + w.word.length * dx);
             });
             if (word) {
-                const index = word.direction[0] === 0 ? j - word.col : i - word.row;
+                const [dy, dx] = word.direction;
+                const index = dy === 0 ? j - word.col : i - word.row;
                 doc.setFontSize(12);
                 drawText(word.word[index], x + cellSize / 2, y + cellSize / 2, { align: 'center', baseline: 'middle' });
             }
         }
     }
 
+    // 단어 목록 추가
+    doc.addPage();
+    doc.setFontSize(14);
+    drawText("Words in the Puzzle:", 10, 20);
+    let yOffset = 40;
+
+    puzzle.forEach((word, index) => {
+        const direction = word.direction[0] === 0 ? "Across" : 
+                          word.direction[1] === 0 ? "Down" : "Diagonal";
+        const wordInfo = `${index + 1}. ${word.word} (${direction})`;
+        drawText(wordInfo, 15, yOffset);
+        yOffset += 20;
+
+        if (yOffset > pageHeight - 20) {
+            doc.addPage();
+            yOffset = 20;
+        }
+    });
+
     doc.save('crossword_puzzle_answer.pdf');
 }
+
+// 새로운 기능: 퍼즐 재생성
+function regeneratePuzzle() {
+    generatePuzzle();
+}
+
+// 새로운 기능: 난이도에 따른 힌트 제한
+let remainingHints;
+
+function initializeHints() {
+    const difficulty = document.getElementById('difficulty').value;
+    switch(difficulty) {
+        case 'easy':
+            remainingHints = 5;
+            break;
+        case 'medium':
+            remainingHints = 3;
+            break;
+        case 'hard':
+            remainingHints = 1;
+            break;
+        default:
+            remainingHints = 3;
+    }
+    updateHintButton();
+}
+
+function updateHintButton() {
+    const hintBtn = document.getElementById('hintBtn');
+    hintBtn.textContent = `Get Hint (${remainingHints} left)`;
+    hintBtn.disabled = remainingHints === 0;
+}
+
+// getHint 함수 수정
+function getHint() {
+    if (remainingHints === 0) {
+        alert('No more hints available!');
+        return;
+    }
+
+    const emptyInputs = Array.from(document.querySelectorAll('.puzzle-input')).filter(input => !input.value);
+    if (emptyInputs.length === 0) {
+        alert('No empty cells left!');
+        return;
+    }
+
+    const randomInput = emptyInputs[Math.floor(Math.random() * emptyInputs.length)];
+    const row = randomInput.parentElement.parentElement.rowIndex;
+    const col = randomInput.parentElement.cellIndex;
+
+    const word = puzzle.find(w => 
+        (w.row === row && w.col === col) || 
+        (w.row === row && w.col <= col && col < w.col + w.word.length) ||
+        (w.col === col && w.row <= row && row < w.row + w.word.length) ||
+        (Math.abs(w.row - row) === Math.abs(w.col - col) && 
+         Math.abs(w.row - row) < w.word.length && 
+         Math.abs(w.col - col) < w.word.length)
+    );
+
+    if (word) {
+        const [dy, dx] = word.direction;
+        const index = dy === 0 ? col - word.col : 
+                      dx === 0 ? row - word.row :
+                      Math.abs(row - word.row);
+        randomInput.value = word.word[index];
+        randomInput.classList.add('hint');
+        randomInput.classList.add('pulse');
+        setTimeout(() => randomInput.classList.remove('pulse'), 500);
+        hintsUsed++;
+        remainingHints--;
+        score -= 50; // Penalty for using a hint
+        updateScore();
+        updateHintButton();
+    }
+}
+
+// 이벤트 리스너 추가
+document.addEventListener('DOMContentLoaded', function() {
+    // ... 기존 코드 ...
+    document.getElementById('regenerateBtn').addEventListener('click', regeneratePuzzle);
+    document.getElementById('generateBtn').addEventListener('click', initializeHints);
+});
