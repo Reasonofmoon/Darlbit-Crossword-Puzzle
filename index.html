@@ -3,15 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crossword Puzzle Generator</title>
+    <title>Fun Crossword Puzzle Generator</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>Crossword Puzzle Generator</h1>
-        <input type="file" id="csvFile" accept=".csv,.xlsx">
-        <button id="generateBtn">Generate Puzzle</button>
+        <h1>Fun Crossword Puzzle Generator</h1>
+        <div id="gameControls">
+            <input type="file" id="csvFile" accept=".csv,.xlsx">
+            <select id="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+            <button id="generateBtn">Generate Puzzle</button>
+        </div>
+        <div id="gameInfo">
+            <div id="timer">Time: 00:00</div>
+            <div id="score">Score: 0</div>
+            <button id="hintBtn">Get Hint</button>
+        </div>
         <div id="puzzleContainer"></div>
+        <div id="cluesContainer"></div>
+        <button id="checkBtn" style="display:none;">Check Answers</button>
         <button id="downloadPdfBtn" style="display:none;">Download PDF</button>
         <button id="downloadExcelBtn" style="display:none;">Download Excel</button>
     </div>
