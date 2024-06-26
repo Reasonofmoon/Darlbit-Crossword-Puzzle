@@ -8,12 +8,35 @@ let score = 1000;
 let hintsUsed = 0;
 let startTime;
 
+document.addEventListener('DOMContentLoaded', function() {
+    addBackgroundImage();
+});
+
 document.getElementById('csvFile').addEventListener('change', handleFileSelect);
 document.getElementById('generateBtn').addEventListener('click', generatePuzzle);
 document.getElementById('checkBtn').addEventListener('click', checkAnswers);
 document.getElementById('hintBtn').addEventListener('click', getHint);
 document.getElementById('downloadPuzzleBtn').addEventListener('click', downloadPuzzle);
 document.getElementById('downloadAnswerBtn').addEventListener('click', downloadAnswer);
+document.getElementById('selectAllBtn').addEventListener('click', selectAllWords);
+document.getElementById('deselectAllBtn').addEventListener('click', deselectAllWords);
+
+function addBackgroundImage() {
+    const body = document.body;
+    const backgroundDiv = document.createElement('div');
+    backgroundDiv.style.position = 'fixed';
+    backgroundDiv.style.right = '10px';
+    backgroundDiv.style.bottom = '10px';
+    backgroundDiv.style.width = '150px';
+    backgroundDiv.style.height = '150px';
+    backgroundDiv.style.backgroundImage = 'url("https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbYbt9e%2FbtsH8GZR9N5%2FS2OKCshqvmQuhy6AV7WZv1%2Fimg.jpg")';
+    backgroundDiv.style.backgroundSize = 'cover';
+    backgroundDiv.style.backgroundPosition = 'center';
+    backgroundDiv.style.borderRadius = '50%';
+    backgroundDiv.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+    backgroundDiv.style.zIndex = '-1';
+    body.appendChild(backgroundDiv);
+}
 
 function handleFileSelect(event) {
     const file = event.target.files[0];
@@ -74,6 +97,16 @@ function displayWordSelection() {
         wordList.appendChild(div);
     });
     document.getElementById('wordSelectionContainer').style.display = 'block';
+}
+
+function selectAllWords() {
+    const checkboxes = document.querySelectorAll('#wordList input[type="checkbox"]');
+    checkboxes.forEach(checkbox => checkbox.checked = true);
+}
+
+function deselectAllWords() {
+    const checkboxes = document.querySelectorAll('#wordList input[type="checkbox"]');
+    checkboxes.forEach(checkbox => checkbox.checked = false);
 }
 
 function generatePuzzle() {
@@ -312,9 +345,13 @@ function downloadPuzzle() {
     const puzzleContainer = document.getElementById('puzzleContainer');
     const cluesContainer = document.getElementById('cluesContainer');
     
+    doc.addFileToVFS('NanumGothic-Regular.ttf', nanumGothicFont);
+    doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
+    doc.setFont('NanumGothic');
+
     doc.text('Crossword Puzzle', 105, 15, null, null, 'center');
     
-    html2canvas(puzzleContainer).then(canvas => {
+    html2canvas(puzzleContainer, { scale: 2 }).then(canvas => {
         const imgData = canvas.toDataURL('image/png');
         const imgProps = doc.getImageProperties(imgData);
         const pdfWidth = doc.internal.pageSize.getWidth() - 20;
@@ -344,6 +381,10 @@ function downloadAnswer() {
     const doc = new jsPDF();
     const puzzleContainer = document.getElementById('puzzleContainer');
     
+    doc.addFileToVFS('NanumGothic-Regular.ttf', nanumGothicFont);
+    doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
+    doc.setFont('NanumGothic');
+
     doc.text('Crossword Puzzle Answer', 105, 15, null, null, 'center');
     
     // Create a copy of the puzzle with answers filled in
@@ -358,7 +399,7 @@ function downloadAnswer() {
         }
     });
     
-    html2canvas(answerPuzzle).then(canvas => {
+    html2canvas(answerPuzzle, { scale: 2 }).then(canvas => {
         const imgData = canvas.toDataURL('image/png');
         const imgProps = doc.getImageProperties(imgData);
         const pdfWidth = doc.internal.pageSize.getWidth() - 20;
@@ -368,3 +409,26 @@ function downloadAnswer() {
         doc.save('crossword_puzzle_answer.pdf');
     });
 }
+
+// 배경 이미지를 추가하는 함수
+function addBackgroundImage() {
+    const body = document.body;
+    const backgroundDiv = document.createElement('div');
+    backgroundDiv.style.position = 'fixed';
+    backgroundDiv.style.right = '10px';
+    backgroundDiv.style.bottom = '10px';
+    backgroundDiv.style.width = '150px';
+    backgroundDiv.style.height = '150px';
+    backgroundDiv.style.backgroundImage = 'url("https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbYbt9e%2FbtsH8GZR9N5%2FS2OKCshqvmQuhy6AV7WZv1%2Fimg.jpg")';
+    backgroundDiv.style.backgroundSize = 'cover';
+    backgroundDiv.style.backgroundPosition = 'center';
+    backgroundDiv.style.borderRadius = '50%';
+    backgroundDiv.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+    backgroundDiv.style.zIndex = '-1';
+    body.appendChild(backgroundDiv);
+}
+
+// 페이지 로드 시 배경 이미지 추가
+document.addEventListener('DOMContentLoaded', function() {
+    addBackgroundImage();
+});
