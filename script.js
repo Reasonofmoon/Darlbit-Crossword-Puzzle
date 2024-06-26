@@ -113,6 +113,260 @@ function deselectAllWords() {
     checkboxes.forEach(checkbox => checkbox.checked = false);
 }
 
+// ... (중간 코드는 그대로 유지)
+
+function downloadPuzzle() {
+    const { jsPDF } = window.jspdf;
+    
+    // A4 크기 설정 (단위: mm)
+    const pageWidth = 210;
+    const pageHeight = 297;
+    
+    const doc = new jsPDF({
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+    });
+
+    const gridSize = puzzle[0].direction[1]; // 그리드 크기
+    const cellSize = Math.min((pageWidth - 20) / gridSize, (pageHeight - 100) / gridSize); // 셀 크기 계산
+    const margin = 10; // 여백
+
+    // 한글 폰트 추가 (폰트 파일이 같은 디렉토리에 있다고 가정)
+    doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
+    doc.setFont('NanumGothic', 'normal');
+
+    // UTF-8 인코딩을 사용하여 텍스트를 렌더링하는 함수
+    function drawText(text, x, y, options = {}) {
+        const defaultOptions = { align: 'left', baseline: 'top' };
+        const mergedOptions = { ...defaultOptions, ...options };
+        
+        doc.text(text, x, y, mergedOptions);
+    }
+
+    // 퍼즐 그리기
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            const x = margin + j * cellSize;
+            const y = margin + i * cellSize;
+            
+            // 셀 그리기
+            if (puzzle.some(word => {
+                const [dy, dx] = word.direction;
+                return (word.row <= i && i < word.row + word.word.length * dy) &&
+                       (word.col <= j && j < word.col + word.word.length * dx);
+            })) {
+                // 단어가 들어갈 셀
+                doc.setFillColor(255, 255, 255); // 흰색
+            } else {
+                // 빈 셀
+                doc.setFillColor(200, 200, 200); // 진한 회색
+            }
+            doc.rect(x, y, cellSize, cellSize, 'F');
+            
+            // 테두리 그리기
+            doc.setDrawColor(0);
+            doc.rect(x, y, cellSize, cellSize, 'S');
+        }
+    }
+
+    // 단서 추가
+    let yOffset = margin + gridSize * cellSize + 10;
+    doc.setFontSize(10);
+
+    drawText("Across:", margin, yOffset);
+    yOffset += 5;
+    puzzle.filter(word => word.direction[1] === 1 && word.direction[0] === 0).forEach((word, index) => {
+        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
+        drawText(clueText, margin + 5, yOffset, { maxWidth: pageWidth - 20 });
+        yOffset += 5;
+        if (yOffset > pageHeight - 10) {
+            doc.addPage();
+            yOffset = 10;
+        }
+    });
+
+    yOffset += 5;
+    drawText("Down:", margin, yOffset);
+    yOffset += 5;
+    puzzle.filter(word => word.direction[0] === 1 && word.direction[1] === 0).forEach((word, index) => {
+        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
+        drawText(clueText, margin + 5, yOffset, { maxWidth: pageWidth - 20 });
+        yOffset += 5;
+        if (yOffset > pageHeight - 10) {
+            doc.addPage();
+            yOffset = 10;
+        }
+    });
+
+    doc.save('crossword_puzzle.pdf');
+}
+
+function downloadAnswer() {
+    const { jsPDF } = window.jspdf;
+    
+    // A4 크기 설정 (단위: mm)
+    const pageWidth = 210;
+    const pageHeight = 297;
+    
+    const doc = new jsPDF({
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+    });
+
+    const gridSize = puzzle[0].direction[1]; // 그리드 크기
+    const cellSize = Math.min((pageWidth - 20) / gridSize, (pageHeight - 100) / gridSize); // 셀 크기 계산
+    const margin = 10; // 여백
+
+    // 한글 폰트 추가 (폰트 파일이 같은 디렉토리에 있다고 가정)
+    doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
+    doc.setFont('NanumGothic', 'normal');
+
+    // UTF-8 인코딩을 사용하여 텍스트를 렌더링하는 함수
+    function drawText(text, x, y, options = {}) {
+        const defaultOptions = { align: 'left', baseline: 'top' };
+        const mergedOptions = { ...defaultOptions, ...options };
+        
+        doc.text(text, x, y, mergedOptions);
+    }
+
+    // 퍼즐 그리기
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            const x = margin + j * cellSize;
+            const y = margin + i * cellSize;
+            
+            // 셀 그리기
+            if (puzzle.some(word => {
+                const [dy, dx] = word.direction;
+                return (word.row <= i && i < word.row + word.word.length * dy) &&
+                       (word.col <= j && j < word.col + word.word.length * dx);
+            })) {
+                // 단어가 들어갈 셀
+                doc.setFillColor(255, 255, 255); // 흰색
+            } else {
+                // 빈 셀
+                doc.setFillColor(200, 200, 200); // 진한 회색
+            }
+            doc.rect(x, y, cellSize, cellSize, 'F');
+            
+            // 테두리 그리기
+            doc.setDrawColor(0);
+            doc.rect(x, y, cellSize, cellSize, 'S');
+            
+            // 답 채우기
+            const word = puzzle.find(w => {
+                const [dy, dx] = w.direction;
+                return (w.row <= i && i < w.row + w.word.length * dy) &&
+                       (w.col <= j && j < w.col + w.word.length * dx);
+            });
+            if (word) {
+                const [dy, dx] = word.direction;
+                const index = dy === 0 ? j - word.col : i - word.row;
+                doc.setFontSize(cellSize * 0.6);
+                drawText(word.word[index], x + cellSize / 2, y + cellSize / 2, { align: 'center', baseline: 'middle' });
+            }
+        }
+    }
+
+    // 단어 목록 추가
+    let yOffset = margin + gridSize * cellSize + 10;
+    doc.setFontSize(10);
+    drawText("Words in the Puzzle:", margin, yOffset);
+    yOffset += 5;
+
+    puzzle.forEach((word, index) => {
+        const direction = word.direction[0] === 0 ? "Across" : 
+                          word.direction[1] === 0 ? "Down" : "Diagonal";
+        const wordInfo = `${index + 1}. ${word.word} (${direction})`;
+        drawText(wordInfo, margin + 5, yOffset);
+        yOffset += 5;
+
+        if (yOffset > pageHeight - 10) {
+            doc.addPage();
+            yOffset = 10;
+        }
+    });
+
+    doc.save('crossword_puzzle_answer.pdf');
+}
+
+// 새로운 기능: 퍼즐 재생성
+function regeneratePuzzle() {
+    generatePuzzle();
+}
+
+// 새로운 기능: 난이도에 따른 힌트 제한
+let remainingHints;
+
+function initializeHints() {
+    const difficulty = document.getElementById('difficulty').value;
+    switch(difficulty) {
+        case 'easy':
+            remainingHints = 5;
+            break;
+        case 'medium':
+            remainingHints = 3;
+            break;
+        case 'hard':
+            remainingHints = 1;
+            break;
+        default:
+            remainingHints = 3;
+    }
+    updateHintButton();
+}
+
+function updateHintButton() {
+    const hintBtn = document.getElementById('hintBtn');
+    hintBtn.textContent = `Get Hint (${remainingHints} left)`;
+    hintBtn.disabled = remainingHints === 0;
+}
+
+// getHint 함수 수정
+function getHint() {
+    if (remainingHints === 0) {
+        alert('No more hints available!');
+        return;
+    }
+
+    const emptyInputs = Array.from(document.querySelectorAll('.puzzle-input')).filter(input => !input.value);
+    if (emptyInputs.length === 0) {
+        alert('No empty cells left!');
+        return;
+    }
+
+    const randomInput = emptyInputs[Math.floor(Math.random() * emptyInputs.length)];
+    const row = randomInput.parentElement.parentElement.rowIndex;
+    const col = randomInput.parentElement.cellIndex;
+
+    const word = puzzle.find(w => 
+        (w.row === row && w.col === col) || 
+        (w.row === row && w.col <= col && col < w.col + w.word.length) ||
+        (w.col === col && w.row <= row && row < w.row + w.word.length) ||
+        (Math.abs(w.row - row) === Math.abs(w.col - col) && 
+         Math.abs(w.row - row) < w.word.length && 
+         Math.abs(w.col - col) < w.word.length)
+    );
+
+    if (word) {
+        const [dy, dx] = word.direction;
+        const index = dy === 0 ? col - word.col : 
+                      dx === 0 ? row - word.row :
+                      Math.abs(row - word.row);
+        randomInput.value = word.word[index];
+        randomInput.classList.add('hint');
+        randomInput.classList.add('pulse');
+        setTimeout(() => randomInput.classList.remove('pulse'), 500);
+        hintsUsed++;
+        remainingHints--;
+        score -= 50; // Penalty for using a hint
+        updateScore();
+        updateHintButton();
+    }
+}
+
 function generatePuzzle() {
     selectedWords = [];
     selectedClues = [];
@@ -143,11 +397,13 @@ function generatePuzzle() {
     document.getElementById('hintBtn').style.display = 'block';
     document.getElementById('downloadPuzzleBtn').style.display = 'block';
     document.getElementById('downloadAnswerBtn').style.display = 'block';
+    document.getElementById('regenerateBtn').style.display = 'block';
 
     startTimer();
     score = 1000;
     hintsUsed = 0;
     updateScore();
+    initializeHints();
 }
 
 function getGridSize(difficulty) {
@@ -264,6 +520,10 @@ function displayClues(usedWords) {
     downClues.classList.add('clue-list');
     downClues.innerHTML = '<h3>Down</h3>';
 
+    const diagonalClues = document.createElement('div');
+    diagonalClues.classList.add('clue-list');
+    diagonalClues.innerHTML = '<h3>Diagonal</h3>';
+
     usedWords.forEach((wordObj, index) => {
         const clue = document.createElement('p');
         clue.textContent = `${index + 1}. ${selectedClues[selectedWords.indexOf(wordObj.word)]}`;
@@ -272,17 +532,13 @@ function displayClues(usedWords) {
         } else if (wordObj.direction[0] === 1 && wordObj.direction[1] === 0) {
             downClues.appendChild(clue);
         } else {
-            // Handle diagonal clues
-            const diagonalClues = document.createElement('div');
-            diagonalClues.classList.add('clue-list');
-            diagonalClues.innerHTML = '<h3>Diagonal</h3>';
             diagonalClues.appendChild(clue);
-            cluesContainer.appendChild(diagonalClues);
         }
     });
 
     cluesContainer.appendChild(acrossClues);
     cluesContainer.appendChild(downClues);
+    cluesContainer.appendChild(diagonalClues);
 }
 
 function startTimer() {
@@ -335,307 +591,24 @@ function checkAnswers() {
     }
 }
 
-function getHint() {
-    const emptyInputs = Array.from(document.querySelectorAll('.puzzle-input')).filter(input => !input.value);
-    if (emptyInputs.length === 0) {
-        alert('No empty cells left!');
-        return;
-    }
 
-    const randomInput = emptyInputs[Math.floor(Math.random() * emptyInputs.length)];
-    const row = randomInput.parentElement.parentElement.rowIndex;
-    const col = randomInput.parentElement.cellIndex;
 
-    const word = puzzle.find(w => 
-        (w.row === row && w.col === col) || 
-        (w.row === row && w.col <= col && col < w.col + w.word.length) ||
-        (w.col === col && w.row <= row && row < w.row + w.word.length) ||
-        (Math.abs(w.row - row) === Math.abs(w.col - col) && 
-         Math.abs(w.row - row) < w.word.length && 
-         Math.abs(w.col - col) < w.word.length)
-    );
 
-    if (word) {
-        const index = word.direction[0] === 0 ? col - word.col : 
-                      word.direction[1] === 0 ? row - word.row :
-                      Math.abs(row - word.row);
-        randomInput.value = word.word[index];
-        randomInput.classList.add('hint');
-        randomInput.classList.add('pulse');
-        setTimeout(() => randomInput.classList.remove('pulse'), 500);
-        hintsUsed++;
-        score -= 50; // Penalty for using a hint
-        updateScore();
-    }
-}
-
-function downloadPuzzle() {
-    const { jsPDF } = window.jspdf;
-    const cellSize = 20; // 셀 크기 (픽셀)
-    const margin = 10; // 여백 (픽셀)
-    
-    const gridSize = puzzle[0].direction[1]; // 그리드 크기
-    const pageWidth = cellSize * gridSize + 2 * margin;
-    const pageHeight = cellSize * gridSize + 2 * margin;
-    
-    const doc = new jsPDF({
-        unit: 'px',
-        format: [pageWidth, pageHeight],
-        compress: true
-    });
-
-    // 한글 폰트 추가
-    doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
-    doc.setFont('NanumGothic', 'normal');
-
-    // UTF-8 인코딩을 사용하여 텍스트를 렌더링하는 함수
-    function drawText(text, x, y, options = {}) {
-        const defaultOptions = { align: 'left', baseline: 'top' };
-        const mergedOptions = { ...defaultOptions, ...options };
-        
-        const utf8Text = unescape(encodeURIComponent(text));
-        doc.text(utf8Text, x, y, mergedOptions);
-    }
-
-    // 퍼즐 그리기
-    for (let i = 0; i < gridSize; i++) {
-        for (let j = 0; j < gridSize; j++) {
-            const x = margin + j * cellSize;
-            const y = margin + i * cellSize;
-            
-            // 셀 그리기
-            if (puzzle.some(word => {
-                const [dy, dx] = word.direction;
-                return (word.row <= i && i < word.row + word.word.length * dy) &&
-                       (word.col <= j && j < word.col + word.word.length * dx);
-            })) {
-                // 단어가 들어갈 셀
-                doc.setFillColor(255, 255, 255); // 흰색
-            } else {
-                // 빈 셀
-                doc.setFillColor(200, 200, 200); // 진한 회색
-            }
-            doc.rect(x, y, cellSize, cellSize, 'F');
-            
-            // 테두리 그리기
-            doc.setDrawColor(0);
-            doc.rect(x, y, cellSize, cellSize, 'S');
-        }
-    }
-
-    // 단서 추가
-    doc.addPage();
-    doc.setFontSize(12);
-    let yOffset = 20;
-
-    drawText("Across:", 10, yOffset);
-    yOffset += 15;
-    puzzle.filter(word => word.direction[1] === 1 && word.direction[0] === 0).forEach((word, index) => {
-        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
-        drawText(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
-        yOffset += 15;
-        if (yOffset > pageHeight - 20) {
-            doc.addPage();
-            yOffset = 20;
-        }
-    });
-
-    yOffset += 10;
-    drawText("Down:", 10, yOffset);
-    yOffset += 15;
-    puzzle.filter(word => word.direction[0] === 1 && word.direction[1] === 0).forEach((word, index) => {
-        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
-        drawText(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
-        yOffset += 15;
-        if (yOffset > pageHeight - 20) {
-            doc.addPage();
-            yOffset = 20;
-        }
-    });
-
-    yOffset += 10;
-    drawText("Diagonal:", 10, yOffset);
-    yOffset += 15;
-    puzzle.filter(word => word.direction[0] !== 0 && word.direction[1] !== 0).forEach((word, index) => {
-        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
-        drawText(clueText, 15, yOffset, { maxWidth: pageWidth - 30 });
-        yOffset += 15;
-        if (yOffset > pageHeight - 20) {
-            doc.addPage();
-            yOffset = 20;
-        }
-    });
-
-    doc.save('crossword_puzzle.pdf');
-}
-
-function downloadAnswer() {
-    const { jsPDF } = window.jspdf;
-    const cellSize = 20; // 셀 크기 (픽셀)
-    const margin = 10; // 여백 (픽셀)
-    
-    const gridSize = puzzle[0].direction[1]; // 그리드 크기
-    const pageWidth = cellSize * gridSize + 2 * margin;
-    const pageHeight = cellSize * gridSize + 2 * margin;
-    
-    const doc = new jsPDF({
-        unit: 'px',
-        format: [pageWidth, pageHeight],
-        compress: true
-    });
-
-    // 한글 폰트 추가
-    doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
-    doc.setFont('NanumGothic', 'normal');
-
-    // UTF-8 인코딩을 사용하여 텍스트를 렌더링하는 함수
-    function drawText(text, x, y, options = {}) {
-        const defaultOptions = { align: 'left', baseline: 'top' };
-        const mergedOptions = { ...defaultOptions, ...options };
-        
-        const utf8Text = unescape(encodeURIComponent(text));
-        doc.text(utf8Text, x, y, mergedOptions);
-    }
-
-    // 퍼즐 그리기
-    for (let i = 0; i < gridSize; i++) {
-        for (let j = 0; j < gridSize; j++) {
-            const x = margin + j * cellSize;
-            const y = margin + i * cellSize;
-            
-            // 셀 그리기
-            if (puzzle.some(word => {
-                const [dy, dx] = word.direction;
-                return (word.row <= i && i < word.row + word.word.length * dy) &&
-                       (word.col <= j && j < word.col + word.word.length * dx);
-            })) {
-                // 단어가 들어갈 셀
-                doc.setFillColor(255, 255, 255); // 흰색
-            } else {
-                // 빈 셀
-                doc.setFillColor(200, 200, 200); // 진한 회색
-            }
-            doc.rect(x, y, cellSize, cellSize, 'F');
-            
-            // 테두리 그리기
-            doc.setDrawColor(0);
-            doc.rect(x, y, cellSize, cellSize, 'S');
-            
-            // 답 채우기
-            const word = puzzle.find(w => {
-                const [dy, dx] = w.direction;
-                return (w.row <= i && i < w.row + w.word.length * dy) &&
-                       (w.col <= j && j < w.col + w.word.length * dx);
-            });
-            if (word) {
-                const [dy, dx] = word.direction;
-                const index = dy === 0 ? j - word.col : i - word.row;
-                doc.setFontSize(12);
-                drawText(word.word[index], x + cellSize / 2, y + cellSize / 2, { align: 'center', baseline: 'middle' });
-            }
-        }
-    }
-
-    // 단어 목록 추가
-    doc.addPage();
-    doc.setFontSize(14);
-    drawText("Words in the Puzzle:", 10, 20);
-    let yOffset = 40;
-
-    puzzle.forEach((word, index) => {
-        const direction = word.direction[0] === 0 ? "Across" : 
-                          word.direction[1] === 0 ? "Down" : "Diagonal";
-        const wordInfo = `${index + 1}. ${word.word} (${direction})`;
-        drawText(wordInfo, 15, yOffset);
-        yOffset += 20;
-
-        if (yOffset > pageHeight - 20) {
-            doc.addPage();
-            yOffset = 20;
-        }
-    });
-
-    doc.save('crossword_puzzle_answer.pdf');
-}
-
-// 새로운 기능: 퍼즐 재생성
-function regeneratePuzzle() {
-    generatePuzzle();
-}
-
-// 새로운 기능: 난이도에 따른 힌트 제한
-let remainingHints;
-
-function initializeHints() {
-    const difficulty = document.getElementById('difficulty').value;
-    switch(difficulty) {
-        case 'easy':
-            remainingHints = 5;
-            break;
-        case 'medium':
-            remainingHints = 3;
-            break;
-        case 'hard':
-            remainingHints = 1;
-            break;
-        default:
-            remainingHints = 3;
-    }
-    updateHintButton();
-}
-
-function updateHintButton() {
-    const hintBtn = document.getElementById('hintBtn');
-    hintBtn.textContent = `Get Hint (${remainingHints} left)`;
-    hintBtn.disabled = remainingHints === 0;
-}
-
-// getHint 함수 수정
-function getHint() {
-    if (remainingHints === 0) {
-        alert('No more hints available!');
-        return;
-    }
-
-    const emptyInputs = Array.from(document.querySelectorAll('.puzzle-input')).filter(input => !input.value);
-    if (emptyInputs.length === 0) {
-        alert('No empty cells left!');
-        return;
-    }
-
-    const randomInput = emptyInputs[Math.floor(Math.random() * emptyInputs.length)];
-    const row = randomInput.parentElement.parentElement.rowIndex;
-    const col = randomInput.parentElement.cellIndex;
-
-    const word = puzzle.find(w => 
-        (w.row === row && w.col === col) || 
-        (w.row === row && w.col <= col && col < w.col + w.word.length) ||
-        (w.col === col && w.row <= row && row < w.row + w.word.length) ||
-        (Math.abs(w.row - row) === Math.abs(w.col - col) && 
-         Math.abs(w.row - row) < w.word.length && 
-         Math.abs(w.col - col) < w.word.length)
-    );
-
-    if (word) {
-        const [dy, dx] = word.direction;
-        const index = dy === 0 ? col - word.col : 
-                      dx === 0 ? row - word.row :
-                      Math.abs(row - word.row);
-        randomInput.value = word.word[index];
-        randomInput.classList.add('hint');
-        randomInput.classList.add('pulse');
-        setTimeout(() => randomInput.classList.remove('pulse'), 500);
-        hintsUsed++;
-        remainingHints--;
-        score -= 50; // Penalty for using a hint
-        updateScore();
-        updateHintButton();
-    }
-}
 
 // 이벤트 리스너 추가
 document.addEventListener('DOMContentLoaded', function() {
-    // ... 기존 코드 ...
-    document.getElementById('regenerateBtn').addEventListener('click', regeneratePuzzle);
-    document.getElementById('generateBtn').addEventListener('click', initializeHints);
+    addBackgroundImage();
+    setupEventListeners();
 });
+
+function setupEventListeners() {
+    document.getElementById('csvFile').addEventListener('change', handleFileSelect);
+    document.getElementById('generateBtn').addEventListener('click', generatePuzzle);
+    document.getElementById('checkBtn').addEventListener('click', checkAnswers);
+    document.getElementById('hintBtn').addEventListener('click', getHint);
+    document.getElementById('downloadPuzzleBtn').addEventListener('click', downloadPuzzle);
+    document.getElementById('downloadAnswerBtn').addEventListener('click', downloadAnswer);
+    document.getElementById('selectAllBtn').addEventListener('click', selectAllWords);
+    document.getElementById('deselectAllBtn').addEventListener('click', deselectAllWords);
+    document.getElementById('regenerateBtn').addEventListener('click', regeneratePuzzle);
+}
