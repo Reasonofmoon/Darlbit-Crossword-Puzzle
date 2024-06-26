@@ -118,21 +118,21 @@ function deselectAllWords() {
 function downloadPuzzle() {
     const { jsPDF } = window.jspdf;
     
-    // A4 크기 설정 (단위: mm)
-    const pageWidth = 210;
-    const pageHeight = 297;
-    
     const doc = new jsPDF({
         unit: 'mm',
         format: 'a4',
         compress: true
     });
 
-    const gridSize = puzzle[0].direction[1]; // 그리드 크기
-    const cellSize = Math.min((pageWidth - 20) / gridSize, (pageHeight - 100) / gridSize); // 셀 크기 계산
-    const margin = 10; // 여백
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 10;
 
-    // 한글 폰트 추가 (폰트 파일이 같은 디렉토리에 있다고 가정)
+    // 그리드 크기를 puzzle 배열의 길이로 계산합니다.
+    const gridSize = puzzle.length ? puzzle[0].direction[1] : 10;
+    const cellSize = Math.min((pageWidth - 2 * margin) / gridSize, (pageHeight - 2 * margin) / gridSize);
+
+    // 한글 폰트 추가
     doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
     doc.setFont('NanumGothic', 'normal');
 
@@ -140,7 +140,6 @@ function downloadPuzzle() {
     function drawText(text, x, y, options = {}) {
         const defaultOptions = { align: 'left', baseline: 'top' };
         const mergedOptions = { ...defaultOptions, ...options };
-        
         doc.text(text, x, y, mergedOptions);
     }
 
@@ -151,20 +150,14 @@ function downloadPuzzle() {
             const y = margin + i * cellSize;
             
             // 셀 그리기
-            if (puzzle.some(word => {
+            const wordCell = puzzle.some(word => {
                 const [dy, dx] = word.direction;
                 return (word.row <= i && i < word.row + word.word.length * dy) &&
                        (word.col <= j && j < word.col + word.word.length * dx);
-            })) {
-                // 단어가 들어갈 셀
-                doc.setFillColor(255, 255, 255); // 흰색
-            } else {
-                // 빈 셀
-                doc.setFillColor(0, 0, 0); // 검은색
-            }
-            doc.rect(x, y, cellSize, cellSize, 'F');
+            });
             
-            // 테두리 그리기
+            doc.setFillColor(wordCell ? 255 : 0); // 단어가 들어갈 셀은 흰색, 빈 셀은 검은색
+            doc.rect(x, y, cellSize, cellSize, 'F');
             doc.setDrawColor(0);
             doc.rect(x, y, cellSize, cellSize, 'S');
         }
@@ -176,38 +169,36 @@ function downloadPuzzle() {
 
     drawText("Across:", margin, yOffset);
     yOffset += 5;
-    puzzle.filter(word => word.direction[1] === 1 && word.direction[0] === 0).forEach((word, index) => {
-        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
+    let clueIndex = 1;
+    puzzle.filter(word => word.direction[1] === 1 && word.direction[0] === 0).forEach(word => {
+        const clueText = `${clueIndex++}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
         drawText(clueText, margin + 5, yOffset, { maxWidth: pageWidth - 20 });
         yOffset += 5;
         if (yOffset > pageHeight - 10) {
             doc.addPage();
-            yOffset = 10;
+            yOffset = margin;
         }
     });
 
     yOffset += 5;
     drawText("Down:", margin, yOffset);
     yOffset += 5;
-    puzzle.filter(word => word.direction[0] === 1 && word.direction[1] === 0).forEach((word, index) => {
-        const clueText = `${index + 1}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
+    puzzle.filter(word => word.direction[0] === 1 && word.direction[1] === 0).forEach(word => {
+        const clueText = `${clueIndex++}. ${selectedClues[selectedWords.indexOf(word.word)]}`;
         drawText(clueText, margin + 5, yOffset, { maxWidth: pageWidth - 20 });
         yOffset += 5;
         if (yOffset > pageHeight - 10) {
             doc.addPage();
-            yOffset = 10;
+            yOffset = margin;
         }
     });
 
     doc.save('crossword_puzzle.pdf');
 }
 
+
 function downloadAnswer() {
     const { jsPDF } = window.jspdf;
-    
-    // A4 크기 설정 (단위: mm)
-    const pageWidth = 210;
-    const pageHeight = 297;
     
     const doc = new jsPDF({
         unit: 'mm',
@@ -215,11 +206,15 @@ function downloadAnswer() {
         compress: true
     });
 
-    const gridSize = puzzle[0].direction[1]; // 그리드 크기
-    const cellSize = Math.min((pageWidth - 20) / gridSize, (pageHeight - 100) / gridSize); // 셀 크기 계산
-    const margin = 10; // 여백
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 10;
 
-    // 한글 폰트 추가 (폰트 파일이 같은 디렉토리에 있다고 가정)
+    // 그리드 크기를 puzzle 배열의 길이로 계산합니다.
+    const gridSize = puzzle.length ? puzzle[0].direction[1] : 10;
+    const cellSize = Math.min((pageWidth - 2 * margin) / gridSize, (pageHeight - 2 * margin) / gridSize);
+
+    // 한글 폰트 추가
     doc.addFont('NanumGothic-Regular.ttf', 'NanumGothic', 'normal');
     doc.setFont('NanumGothic', 'normal');
 
@@ -227,7 +222,6 @@ function downloadAnswer() {
     function drawText(text, x, y, options = {}) {
         const defaultOptions = { align: 'left', baseline: 'top' };
         const mergedOptions = { ...defaultOptions, ...options };
-        
         doc.text(text, x, y, mergedOptions);
     }
 
@@ -238,20 +232,14 @@ function downloadAnswer() {
             const y = margin + i * cellSize;
             
             // 셀 그리기
-            if (puzzle.some(word => {
+            const wordCell = puzzle.some(word => {
                 const [dy, dx] = word.direction;
                 return (word.row <= i && i < word.row + word.word.length * dy) &&
                        (word.col <= j && j < word.col + word.word.length * dx);
-            })) {
-                // 단어가 들어갈 셀
-                doc.setFillColor(255, 255, 255); // 흰색
-            } else {
-                // 빈 셀
-                doc.setFillColor(0, 0, 0); // 검은색
-            }
-            doc.rect(x, y, cellSize, cellSize, 'F');
+            });
             
-            // 테두리 그리기
+            doc.setFillColor(wordCell ? 255 : 0); // 단어가 들어갈 셀은 흰색, 빈 셀은 검은색
+            doc.rect(x, y, cellSize, cellSize, 'F');
             doc.setDrawColor(0);
             doc.rect(x, y, cellSize, cellSize, 'S');
             
@@ -287,12 +275,13 @@ function downloadAnswer() {
 
         if (yOffset > pageHeight - 10) {
             doc.addPage();
-            yOffset = 10;
+            yOffset = margin;
         }
     });
 
     doc.save('crossword_puzzle_answer.pdf');
 }
+
 
 // 새로운 기능: 퍼즐 재생성
 function regeneratePuzzle() {
